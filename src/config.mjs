@@ -48,9 +48,71 @@ export const BUILD_ID_DEFAULTS = {
   length: 16,
 };
 
+/**
+ * Defaults for the external-asset tripwire.
+ *
+ * `allowHosts` is EMPTY on purpose. A toolkit that ships a permissive allowlist teaches the
+ * wrong lesson on day one: you should have to name every third party you accept, one at a
+ * time, and watch that list grow.
+ */
+export const EXTERNAL_DEFAULTS = {
+  dist: 'dist',
+  allowHosts: [],
+  allowUrlPrefixes: [],
+};
+
+/**
+ * Defaults for the freshness watchdog.
+ *
+ * Inert until pointed at something: a watchdog that invented claims to guard would be worse
+ * than none. Set `scan` (a file of object literals) or `claims` (an array you built yourself).
+ */
+export const FRESHNESS_DEFAULTS = {
+  claims: [],
+  scan: null, // { file, keys?: { id, label, lastVerified, recheckBy, sourceUrl } }
+  recheckMonths: 12,
+  warnWindowDays: 45,
+  driftApi: null,
+  driftTimeoutMs: 8000,
+  /** Fail when a dated claim names no source — the gap that hides wrong numbers longest. */
+  requireSourceUrl: false,
+};
+
+/** Defaults for discovery checks. */
+export const DISCOVERY_DEFAULTS = {
+  dist: 'dist',
+  ignoreRoutes: [],
+  rules: {
+    maxTitle: 60,
+    maxDescription: 160,
+    requireCanonical: true,
+    requireOg: true,
+    requireH1: true,
+    requireJsonLd: false,
+    checkErrorPages: false,
+  },
+};
+
+/** Defaults for performance budgets. A null `url` skips the gate. */
+export const BUDGETS_DEFAULTS = {
+  url: null,
+  categories: {
+    accessibility: { min: 90, blocking: true },
+    performance: { min: 80, blocking: false },
+    'best-practices': { min: 90, blocking: false },
+    seo: { min: 90, blocking: false },
+  },
+  preset: 'desktop',
+  timeoutMs: 180000,
+};
+
 /** Every module's defaults, keyed by config section. */
 export const DEFAULTS = {
   buildId: BUILD_ID_DEFAULTS,
+  external: EXTERNAL_DEFAULTS,
+  freshness: FRESHNESS_DEFAULTS,
+  discovery: DISCOVERY_DEFAULTS,
+  budgets: BUDGETS_DEFAULTS,
 };
 
 /**
@@ -109,6 +171,46 @@ export function validateConfig(config) {
     // a project with a long history, and a collision means the cache is never busted.
     if (!Number.isInteger(b.length) || b.length < 8 || b.length > 64) {
       problems.push(`buildId.length must be an integer between 8 and 64 (got ${b.length})`);
+    }
+  }
+
+  const e = config.external;
+  if (e) {
+    for (const key of ['allowHosts', 'allowUrlPrefixes']) {
+      if (!Array.isArray(e[key])) problems.push(`external.${key} must be an array`);
+    }
+    // A bare scheme in allowHosts silently allows nothing (hostnames never contain "//"),
+    // so the gate would look configured while permitting none of what you intended.
+    for (const h of e.allowHosts ?? []) {
+      if (/^https?:\/\//i.test(h)) {
+        problems.push(`external.allowHosts entries are hostnames, not URLs — drop the scheme from "${h}"`);
+      }
+    }
+  }
+
+  const f = config.freshness;
+  if (f) {
+    if (!Array.isArray(f.claims)) problems.push('freshness.claims must be an array');
+    if (f.scan && typeof f.scan.file !== 'string') {
+      problems.push('freshness.scan.file must be a path to the file holding your claims');
+    }
+    if (!Number.isFinite(f.recheckMonths) || f.recheckMonths <= 0) {
+      problems.push(`freshness.recheckMonths must be a positive number (got ${f.recheckMonths})`);
+    }
+    if (f.driftApi !== null && typeof f.driftApi !== 'string') {
+      problems.push('freshness.driftApi must be a URL string or null');
+    }
+  }
+
+  const b2 = config.budgets;
+  if (b2) {
+    for (const [id, rule] of Object.entries(b2.categories ?? {})) {
+      if (!Number.isFinite(rule?.min) || rule.min < 0 || rule.min > 100) {
+        problems.push(`budgets.categories.${id}.min must be a number 0-100`);
+      }
+      if (typeof rule?.blocking !== 'boolean') {
+        problems.push(`budgets.categories.${id}.blocking must be true or false`);
+      }
     }
   }
 

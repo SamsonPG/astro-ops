@@ -36,15 +36,16 @@ That is the whole thesis: **one maintained implementation, one config file per s
 Each gate answers a failure that a normal test suite cannot see, because in every case
 the origin is fine and only the edge, the crawler, or the calendar is wrong.
 
-- **Content-hashed build id** — a deploy can never silently serve last week's HTML. ✅ built
-- **Freshness watchdogs** — pages that state a fact carry an expiry; CI fails when one goes
-  stale instead of leaving a wrong number published. ⏳
-- **Performance budgets in CI** — Lighthouse thresholds that block a merge, not a score
-  somebody checks by hand after launch. ⏳
-- **Discovery wiring** — sitemap, `llms.txt`, `ai.txt`, structured data and IndexNow
-  generated from the content, so they cannot drift from it. ⏳
-- **Privacy-first defaults** — self-hosted fonts, no third-party CDN in the critical path,
-  and a tripwire that fails the build when an external host sneaks in. ⏳
+| Gate | Catches | Command |
+|---|---|---|
+| **Content-hashed build id** | A deploy silently serving last week's HTML from a cache that was never invalidated | `check:build-id` |
+| **Freshness watchdog** | A fact you verified once that the authority changed without telling you | `check:freshness` |
+| **External-asset tripwire** | A third-party script, font or embed that appeared without anyone deciding to add it | `check:external` |
+| **Discovery wiring** | A sitemap and a set of pages that no longer agree — noindex conflicts, canonicals pointing at 404s | `check:discovery` |
+| **Performance budgets** | A slow regression nobody would have blocked, because the score was only ever a dashboard | `check:budgets` |
+
+`astro-ops check` runs all five and reports **every** failure, not just the first — a CI run
+that surfaces one problem per push turns a five-minute fix into five pushes.
 
 ## Install
 
@@ -105,13 +106,54 @@ actually running in production rather than a neutral guess.
 // astro-ops.config.mjs
 export default {
   buildId: {
-    include: ['dist'],        // hashed — what you DEPLOY, not what you wrote
+    include: ['dist'],          // hashed — what you DEPLOY, not what you wrote
     out: 'build-id.js',
     constName: 'BUILD_ID',
     length: 16,
   },
+
+  external: {
+    // Empty by default, on purpose. Every third party you accept has to be named here,
+    // one at a time, so the list is visible and grows where you can see it.
+    allowHosts: ['api.producthunt.com'],
+  },
+
+  freshness: {
+    // Point it at the file holding your claims. It reads `key: 'value'` literals without
+    // importing or parsing the file, so TypeScript is fine.
+    scan: { file: 'src/data/specs.ts' },
+    recheckMonths: 12,
+    warnWindowDays: 45,
+    // Optional second tripwire: a feed of { claimId: { detectedAt } } that something you
+    // run — typically a weekly cron — updates when a source page's hash changes.
+    driftApi: 'https://example.com/api/freshness',
+    // Fail when a claim names no source. Off by default; on is stricter and better.
+    requireSourceUrl: false,
+  },
+
+  discovery: {
+    ignoreRoutes: [],
+    rules: { maxTitle: 60, maxDescription: 160, requireJsonLd: false },
+  },
+
+  budgets: {
+    // Null skips the gate. Point it at a server you started in CI.
+    url: 'http://127.0.0.1:4173/',
+    categories: {
+      accessibility: { min: 90, blocking: true },
+      performance: { min: 80, blocking: false },
+    },
+  },
 };
 ```
+
+### Why performance is advisory by default
+
+Lighthouse performance moves several points between runs on identical code, and further
+between a laptop and a loaded CI runner. Made blocking at a tight threshold it fails
+randomly, people learn to re-run until it passes, and a gate understood as a coin flip
+protects nothing. Accessibility is close to deterministic, so it blocks. Set performance
+blocking only at a threshold loose enough that tripping it means something really broke.
 
 Array options **replace** the defaults rather than merging with them, so you can drop a
 default you disagree with and your config file always shows the effective value.
