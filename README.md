@@ -144,9 +144,9 @@ Push a content change while the rotated id sits uncommitted, and you ship new HT
 the **previous** id. The cache key never changed, so every colo keeps serving the old page.
 The origin is correct. The deploy "succeeded". Nothing in CI can see it.
 
-That is not hypothetical — it took down a status page for hours on 2026-08-07 in the
-project this came from. The origin had the new content; the public URL returned the
-pre-change copy.
+This is not hypothetical. It is the failure this module was written in response to: a page
+whose origin served the new content while the public URL kept returning the pre-change
+copy, from every colo, until someone thought to look at the cache key.
 
 Hashing the deployed content fixes it at the root:
 

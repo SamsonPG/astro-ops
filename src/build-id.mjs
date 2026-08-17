@@ -28,9 +28,9 @@
  * The origin is correct. The deploy "succeeded". Nothing in a normal test suite can see
  * it, because only the cache is wrong.
  *
- * (That is not hypothetical. It is what took down a status page for hours on 2026-08-07 in
- * the project this was extracted from — the origin served the new content and the public
- * URL returned the pre-change copy.)
+ * (This is not hypothetical. It is the failure this module was written in response to: the
+ * origin served the new content while the public URL kept returning the pre-change copy,
+ * from every colo, until someone thought to look at the cache key.)
  *
  * Hashing the deployed content fixes it at the root:
  *   - Both pipelines compute the SAME id for the same commit, so the committed value is
