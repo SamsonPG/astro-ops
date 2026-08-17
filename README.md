@@ -42,9 +42,10 @@ the origin is fine and only the edge, the crawler, or the calendar is wrong.
 | **Freshness watchdog** | A fact you verified once that the authority changed without telling you | `check:freshness` |
 | **External-asset tripwire** | A third-party script, font or embed that appeared without anyone deciding to add it | `check:external` |
 | **Discovery wiring** | A sitemap and a set of pages that no longer agree — noindex conflicts, canonicals pointing at 404s | `check:discovery` |
+| **Link integrity** | A link to a page you no longer ship, and trailing-slash drift that costs a redirect hop | `check:links` |
 | **Performance budgets** | A slow regression nobody would have blocked, because the score was only ever a dashboard | `check:budgets` |
 
-`astro-ops check` runs all five and reports **every** failure, not just the first — a CI run
+`astro-ops check` runs all six and reports **every** failure, not just the first — a CI run
 that surfaces one problem per push turns a five-minute fix into five pushes.
 
 ## Install

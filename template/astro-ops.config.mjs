@@ -57,6 +57,16 @@ export default {
     },
   },
 
+  links: {
+    /*
+      Must agree with astro.config's trailingSlash and with your host. Flip both together
+      or the gate fights the site: with one set to 'never', every internal link is reported
+      as wrong and people switch the check off.
+    */
+    requireTrailingSlash: true,
+    ignore: [],
+  },
+
   budgets: {
     /*
       Null skips the gate. Set it to a server you start in CI — `npm run check:budgets`

@@ -1,6 +1,6 @@
 # Astro Production Starter
 
-A working Astro site with five production gates already wired into its build and CI.
+A working Astro site with six production gates already wired into its build and CI.
 
 Astro themes sell **design** — the part a competent developer already has. This is the
 layer above it: the checks that notice when a correct-looking site has quietly stopped
@@ -9,7 +9,7 @@ being correct.
 ```bash
 npm install
 npm run build     # postbuild writes build-id.js from a hash of dist/
-npm run check     # astro check + all five gates
+npm run check     # astro check + all six gates
 ```
 
 Every gate is green out of the box, and the site scores **100 / 100 / 96 / 100** on
@@ -29,9 +29,10 @@ review and surface months later.
 | `check:freshness` | A fact you verified once that the authority changed without telling you |
 | `check:external` | A third-party script, font or embed that appeared without anyone deciding to add it |
 | `check:discovery` | A sitemap and a set of pages that no longer agree |
+| `check:links` | A link to a page you no longer ship, and trailing-slash drift |
 | `check:budgets` | A slow regression nobody would have blocked, because the score was only ever a dashboard |
 
-`npm run check:ci` runs the first four. `npm run check:budgets` runs the fifth — it needs a
+`npm run check:ci` runs the first five. `npm run check:budgets` runs the fifth — it needs a
 server, and `scripts/with-server.mjs` starts and stops one for you.
 
 ## Prove they work
