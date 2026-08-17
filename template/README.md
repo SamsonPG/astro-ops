@@ -47,16 +47,52 @@ not asserted:
 | Add `noindex` to a page that is in the sitemap | `listed in the sitemap but the page is noindex` |
 | Set `lastVerified` in `src/data/claims.ts` to 2023 | `1 claim(s) OVERDUE for re-verification` |
 
-## What is where
+## What you get
+
+A working site, not a demo of five checks:
+
+- **Blog** on Astro content collections with a strict schema — a missing description or a
+  malformed date fails the build, naming the file and the field.
+- **Generated `sitemap.xml`, `rss.xml`, `robots.txt` and `llms.txt`** — all from the same
+  content and the same draft rule, so none of them can drift from the pages.
+- **Drafts** that build (so you can preview them) but carry `noindex` and stay out of the
+  sitemap and the feed.
+- **Dark/light theme** applied before first paint, so dark-mode visitors never see a flash.
+- **Structured data**: Organization, WebPage, BlogPosting and BreadcrumbList, wired to one
+  `@id` so a search engine reads the pages as one entity rather than unrelated documents.
+- **Accessibility basics** most templates skip: skip link, visible focus ring, landmark
+  structure, `color-scheme`.
+- **One config file** that everything derives from.
 
 ```
+src/config.ts              site name, URL, author, nav — the only file you must edit
 src/layouts/Base.astro     title, description, canonical, OG, JSON-LD — emitted once
-src/pages/                 index, about, 404, and sitemap.xml.ts
+src/content.config.ts      blog schema; title budget derived from the site suffix
+src/content/blog/          markdown posts
+src/pages/                 index, about, 404, blog, and the generated .txt/.xml routes
 src/data/claims.ts         facts that belong to somebody else, with dates and sources
 astro-ops.config.mjs       every gate's settings, commented with the reason for each
 worker.js                  Cloudflare Worker; keys the edge page cache on BUILD_ID
 .github/workflows/ci.yml   build → gates → deploy, in that order
 ```
+
+**Edit `src/config.ts` first.** It is the only place your domain appears. It used to be
+typed into `astro.config.mjs`, `robots.txt` and `llms.txt` separately — change your domain
+and two of the three silently keep pointing at the old one, because none of them is wrong
+on its own. That is the same class of bug the gates exist to catch, and it was sitting in
+the starter.
+
+### The title budget
+
+The rendered `<title>` is `"Post — Site"`, so the site suffix spends part of a fixed 60
+character budget. `src/content.config.ts` derives the remaining allowance from
+`SITE.titleSuffix` and enforces it in the post schema, so an over-long title fails when you
+write the post — naming the file and the field — instead of surfacing later as a gate
+failure on the final string.
+
+If it feels tight, set `titleSuffix: ''` and give articles the whole budget. What you should
+not do is raise `maxTitle` past what search results actually display; that only moves the
+truncation somewhere you cannot see it.
 
 ## Things that look like defaults and are not
 

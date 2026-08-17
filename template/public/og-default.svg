@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="Astro Production Starter">
+  <rect width="1200" height="630" fill="#0f1216"/>
+  <rect x="60" y="60" width="1080" height="510" rx="24" fill="#171b22" stroke="#2a323d"/>
+  <text x="120" y="250" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="68" font-weight="700" fill="#e8edf2">Astro Production Starter</text>
+  <text x="120" y="330" font-family="system-ui,-apple-system,Segoe UI,Roboto,sans-serif" font-size="34" fill="#a6b6c4">For what happens after the site looks right.</text>
+  <g font-family="ui-monospace,SFMono-Regular,Menlo,Consolas,monospace" font-size="26" fill="#5fe39b">
+    <text x="120" y="430">✓ build id  ✓ freshness  ✓ budgets</text>
+    <text x="120" y="478">✓ discovery  ✓ no third-party assets</text>
+  </g>
+</svg>

@@ -1,37 +1,59 @@
 /**
- * Sitemap, generated FROM the pages rather than maintained beside them.
+ * Sitemap, generated FROM the pages and posts rather than maintained beside them.
  *
  * This is the whole reason check:discovery can be strict about sitemap/page agreement: a
  * hand-kept list drifts the first time someone renames a route, and the drift is invisible
  * because each half still looks correct on its own.
  *
- * Pages marked noindex are excluded here. Listing one is a direct contradiction — asking
- * to be crawled while refusing to be indexed — and the gate fails the build on it.
+ * Two exclusions, both load-bearing:
+ *   - 404 is served at arbitrary URLs with a non-200 and must never be listed.
+ *   - Drafts carry noindex, and a noindex page in a sitemap is a direct contradiction —
+ *     asking to be crawled while refusing to be indexed. The gate fails the build on it,
+ *     which is how you find out you got this wrong.
  */
 import type { APIRoute } from 'astro';
+import { getCollection } from 'astro:content';
+import { absolute } from '../config';
 
-/** Astro hands us every page module; we read each one's frontmatter to decide. */
-const pages = import.meta.glob('./**/*.astro', { eager: true }) as Record<string, unknown>;
+/** Static pages, discovered rather than listed by hand. */
+const staticPages = import.meta.glob('./**/*.astro', { eager: true }) as Record<string, unknown>;
 
-/** `./about.astro` -> `/about/`, `./index.astro` -> `/`. */
+/** `./about.astro` -> `/about/`, `./index.astro` -> `/`, `./blog/index.astro` -> `/blog/`. */
 function routeOf(file: string): string {
   const rel = file.replace(/^\.\//, '').replace(/\.astro$/, '');
   if (rel === 'index') return '/';
+  if (rel.endsWith('/index')) return `/${rel.slice(0, -'/index'.length)}/`;
   return `/${rel}/`;
 }
 
-export const GET: APIRoute = ({ site }) => {
-  const origin = (site ?? new URL('https://example.com')).origin;
-
-  const routes = Object.keys(pages)
-    // 404 is served at arbitrary URLs with a non-200 and must never be listed.
+export const GET: APIRoute = async () => {
+  const routes = Object.keys(staticPages)
     .filter((f) => !/\/?404\.astro$/.test(f))
-    .map(routeOf)
-    .sort();
+    // Dynamic routes ([...slug]) are expanded from the collection below, not the glob.
+    .filter((f) => !f.includes('['))
+    .map(routeOf);
+
+  const posts = await getCollection('blog', ({ data }) => !data.draft);
+  const postEntries = posts
+    .map((p) => ({
+      loc: `/blog/${p.id}/`,
+      lastmod: (p.data.updated ?? p.data.date).toISOString().slice(0, 10),
+    }))
+    .sort((a, b) => (a.loc < b.loc ? -1 : 1));
+
+  const all = [
+    ...routes.sort().map((loc) => ({ loc, lastmod: null as string | null })),
+    ...postEntries,
+  ];
 
   const body = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${routes.map((r) => `  <url><loc>${origin}${r}</loc></url>`).join('\n')}
+${all
+  .map(
+    (u) =>
+      `  <url><loc>${absolute(u.loc)}</loc>${u.lastmod ? `<lastmod>${u.lastmod}</lastmod>` : ''}</url>`,
+  )
+  .join('\n')}
 </urlset>
 `;
 

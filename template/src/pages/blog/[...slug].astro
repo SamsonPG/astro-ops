@@ -1,0 +1,71 @@
+---
+import { getCollection, render } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { SITE, absolute } from '../../config';
+
+export async function getStaticPaths() {
+  // Drafts still BUILD (so you can preview them) but carry noindex and stay out of the
+  // sitemap and RSS. Excluding them from the build instead would mean a draft link 404s
+  // for the person reviewing it.
+  const posts = await getCollection('blog');
+  return posts.map((post) => ({ params: { slug: post.id }, props: { post } }));
+}
+
+const { post } = Astro.props;
+const { Content } = await render(post);
+
+const fmt = (d: Date) =>
+  d.toLocaleDateString('en-GB', { year: 'numeric', month: 'short', day: 'numeric' });
+
+/**
+ * Article schema, with `dateModified` only when the post actually declares an update.
+ * Emitting dateModified === datePublished on every post is a claim that everything was
+ * revised today, which is both false and exactly the freshness signal you do not want to
+ * fake.
+ */
+const articleSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BlogPosting',
+  headline: post.data.title,
+  description: post.data.description,
+  datePublished: post.data.date.toISOString(),
+  ...(post.data.updated ? { dateModified: post.data.updated.toISOString() } : {}),
+  author: { '@type': 'Person', name: SITE.author.name, url: SITE.author.url },
+  publisher: { '@id': `${SITE.url}/#organization` },
+  mainEntityOfPage: absolute(`/blog/${post.id}/`),
+  keywords: post.data.tags.join(', '),
+};
+
+const breadcrumbSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'BreadcrumbList',
+  itemListElement: [
+    { '@type': 'ListItem', position: 1, name: 'Home', item: absolute('/') },
+    { '@type': 'ListItem', position: 2, name: 'Blog', item: absolute('/blog/') },
+    { '@type': 'ListItem', position: 3, name: post.data.title, item: absolute(`/blog/${post.id}/`) },
+  ],
+};
+---
+
+<Base
+  title={post.data.title}
+  description={post.data.description}
+  ogType="article"
+  ogImage={post.data.ogImage}
+  noindex={post.data.draft}
+  schema={[articleSchema, breadcrumbSchema]}
+>
+  <article>
+    <h1>{post.data.title}</h1>
+    <p class="meta">
+      <time datetime={post.data.date.toISOString()}>{fmt(post.data.date)}</time>
+      {post.data.updated && <> · updated <time datetime={post.data.updated.toISOString()}>{fmt(post.data.updated)}</time></>}
+      {post.data.draft && <> · <strong>draft</strong></>}
+    </p>
+    <p>{post.data.tags.map((t) => <span class="tag">{t}</span>)}</p>
+
+    <Content />
+  </article>
+
+  <p style="margin-top:2.5rem"><a href="/blog/">← All posts</a></p>
+</Base>

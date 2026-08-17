@@ -10,108 +10,209 @@
  * The gate then verifies the OUTPUT, not this file — so if someone bypasses the layout,
  * the build still fails.
  */
+import { SITE, absolute } from '../config';
+
 interface Props {
-  /** Page title. Kept under the length search results display — the gate enforces it. */
+  /** Page title, WITHOUT the site suffix — this layout appends it. */
   title: string;
-  /** Meta description. Also enforced. */
-  description: string;
+  /** Meta description. Length is enforced by check:discovery. */
+  description?: string;
   /** Set on pages that must not be indexed. The gate fails if one is in the sitemap. */
   noindex?: boolean;
+  /** Social preview image, root-relative. Falls back to the site default. */
+  ogImage?: string;
+  /** 'article' for blog posts, so the OG type matches what the page actually is. */
+  ogType?: 'website' | 'article';
+  /** Extra JSON-LD emitted alongside the page's own. */
+  schema?: Record<string, unknown>[];
 }
 
-const { title, description, noindex = false } = Astro.props;
+const {
+  title,
+  description = SITE.description,
+  noindex = false,
+  ogImage = SITE.ogImage,
+  ogType = 'website',
+  schema = [],
+} = Astro.props;
 
 /**
  * Canonical is derived from the page's own URL, never hand-written.
  *
- * A hand-written canonical is the single most common way a site quietly hands its ranking
- * to a URL that does not exist — someone copies a page, forgets the tag, and the copy now
+ * A hand-written canonical is the most common way a site quietly hands its ranking to a
+ * URL that does not exist — someone copies a page, forgets the tag, and the copy now
  * points at the original. Deriving it means the gate's "canonical must match the route"
- * check can only fail if the site config is wrong, which is a fixable, obvious thing.
+ * check can only fail if config is wrong, which is obvious and fixable.
  */
-const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+const canonical = new URL(Astro.url.pathname, SITE.url).href;
+
+/** "Page — Site", but never "Site — Site" on the homepage. */
+const fullTitle =
+  !SITE.titleSuffix || title === SITE.titleSuffix ? title : `${title} — ${SITE.titleSuffix}`;
+
+/**
+ * Organization is emitted on every page with a stable @id, so every other node can
+ * reference it instead of repeating the publisher. That is what lets a search engine treat
+ * scattered pages as one entity rather than unrelated documents.
+ */
+const orgSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  '@id': `${SITE.url}/#organization`,
+  name: SITE.name,
+  url: SITE.url,
+  ...(SITE.sameAs.length ? { sameAs: SITE.sameAs } : {}),
+};
+
+const pageSchema = {
+  '@context': 'https://schema.org',
+  '@type': 'WebPage',
+  '@id': canonical,
+  url: canonical,
+  name: fullTitle,
+  description,
+  inLanguage: SITE.lang,
+  isPartOf: { '@id': `${SITE.url}/#website` },
+  publisher: { '@id': `${SITE.url}/#organization` },
+};
 ---
 
 <!doctype html>
-<html lang="en">
+<html lang={SITE.lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>{title}</title>
+    <title>{fullTitle}</title>
     <meta name="description" content={description} />
     <link rel="canonical" href={canonical} />
     {noindex && <meta name="robots" content="noindex, follow" />}
 
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content={title} />
+    <meta property="og:type" content={ogType} />
+    <meta property="og:site_name" content={SITE.name} />
+    <meta property="og:title" content={fullTitle} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={canonical} />
+    <meta property="og:locale" content={SITE.locale} />
+    <meta property="og:image" content={absolute(ogImage)} />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content={fullTitle} />
+    <meta name="twitter:description" content={description} />
+    <meta name="twitter:image" content={absolute(ogImage)} />
+
+    <link rel="alternate" type="application/rss+xml" title={SITE.name} href={absolute('/rss.xml')} />
+    <link rel="alternate" type="text/plain" title="llms.txt" href={absolute('/llms.txt')} />
 
     {/*
-      Fonts are the system stack, deliberately. A webfont from a third-party host is the
-      most common thing `astro-ops check:external` catches, and the most common reason a
-      "we load nothing third-party" claim in a privacy policy quietly becomes false.
-      Self-host if you need a specific face; do not link one.
+      Theme applied BEFORE first paint. A toggle that runs after hydration shows a white
+      flash to every dark-mode visitor on every navigation, which is the single most
+      common defect in an otherwise good template.
+    */}
+    <script is:inline>
+      (function () {
+        try {
+          var stored = localStorage.getItem('theme');
+          var dark = stored ? stored === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+          document.documentElement.dataset.theme = dark ? 'dark' : 'light';
+        } catch (e) {}
+      })();
+    </script>
+
+    {/*
+      System font stack, deliberately. A webfont from a third-party host is the most common
+      thing check:external catches, and the most common reason a "we load nothing
+      third-party" claim in a privacy policy quietly becomes false. Self-host if you need a
+      specific face; do not link one.
     */}
     <style is:global>
-      :root {
+      :root,
+      :root[data-theme='light'] {
+        --bg: #f7f8fa;
+        --panel: #ffffff;
+        --ink: #16202b;
+        --muted: #4a5765;
+        --rim: #dde3ea;
+        --brand: #0b7a43;
+      }
+      :root[data-theme='dark'] {
         --bg: #0f1216;
         --panel: #171b22;
         --ink: #e8edf2;
-        --muted: #9fb0bf;
+        --muted: #a6b6c4;
         --rim: #2a323d;
-        --brand: #4ade80;
-      }
-      @media (prefers-color-scheme: light) {
-        :root {
-          --bg: #f7f8fa;
-          --panel: #ffffff;
-          --ink: #16202b;
-          --muted: #566472;
-          --rim: #dde3ea;
-          --brand: #0f9d58;
-        }
+        --brand: #5fe39b;
       }
       * { box-sizing: border-box; }
+      html { color-scheme: light dark; }
       body {
         margin: 0;
         background: var(--bg);
         color: var(--ink);
         font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
       }
-      main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
-      h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.15; letter-spacing: -0.02em; }
+      .wrap { max-width: 46rem; margin: 0 auto; padding: 0 1.25rem; }
+      main { padding: 2.5rem 0 4rem; }
+      h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.15; letter-spacing: -0.02em; margin: 0 0 0.75rem; }
       h2 { margin-top: 2.5rem; }
       a { color: var(--brand); }
-      code { background: var(--panel); border: 1px solid var(--rim); border-radius: 4px; padding: 0.1rem 0.35rem; }
-      nav { border-bottom: 1px solid var(--rim); }
-      nav div { max-width: 46rem; margin: 0 auto; padding: 1rem 1.25rem; display: flex; gap: 1.25rem; }
-      footer { border-top: 1px solid var(--rim); color: var(--muted); font-size: 0.9rem; }
-      footer div { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem; }
+      code { background: var(--panel); border: 1px solid var(--rim); border-radius: 4px; padding: 0.1rem 0.35rem; font-size: 0.9em; }
+      pre { background: var(--panel); border: 1px solid var(--rim); border-radius: 8px; padding: 1rem; overflow-x: auto; }
+      pre code { background: none; border: 0; padding: 0; }
+      /* A visible focus ring is not decoration — without it the site is unusable by keyboard. */
+      :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; }
+      .skip { position: absolute; left: -9999px; }
+      .skip:focus { left: 1rem; top: 1rem; z-index: 10; background: var(--panel); padding: 0.6rem 0.9rem; border-radius: 6px; border: 1px solid var(--rim); }
+      .site-head { border-bottom: 1px solid var(--rim); }
+      .site-head .wrap { display: flex; align-items: center; gap: 1.25rem; padding-top: 1rem; padding-bottom: 1rem; }
+      .site-head nav { display: flex; gap: 1.1rem; }
+      .theme-btn { margin-left: auto; background: var(--panel); color: var(--ink); border: 1px solid var(--rim); border-radius: 999px; padding: 0.35rem 0.8rem; font: inherit; font-size: 0.85rem; cursor: pointer; }
+      .site-foot { border-top: 1px solid var(--rim); color: var(--muted); font-size: 0.9rem; }
+      .site-foot .wrap { padding-top: 2rem; padding-bottom: 2rem; }
+      .card { border: 1px solid var(--rim); border-radius: 10px; background: var(--panel); padding: 1.1rem 1.2rem; }
+      .meta { color: var(--muted); font-size: 0.88rem; }
+      ul.posts { list-style: none; padding: 0; display: grid; gap: 0.9rem; }
+      .tag { display: inline-block; border: 1px solid var(--rim); border-radius: 999px; padding: 0.1rem 0.6rem; font-size: 0.78rem; color: var(--muted); margin-right: 0.3rem; }
     </style>
 
-    <script type="application/ld+json" set:html={JSON.stringify({
-      '@context': 'https://schema.org',
-      '@type': 'WebPage',
-      name: title,
-      description,
-      url: canonical,
-    })} />
+    <script type="application/ld+json" set:html={JSON.stringify(orgSchema)} />
+    <script type="application/ld+json" set:html={JSON.stringify(pageSchema)} />
+    {schema.map((s) => <script type="application/ld+json" set:html={JSON.stringify(s)} />)}
   </head>
   <body>
-    <nav>
-      <div>
-        <a href="/">Home</a>
-        <a href="/about/">About</a>
+    <a class="skip" href="#main">Skip to content</a>
+
+    <header class="site-head">
+      <div class="wrap">
+        <nav aria-label="Main">
+          {SITE.nav.map((l) => <a href={l.href}>{l.label}</a>)}
+        </nav>
+        <button class="theme-btn" type="button" data-theme-toggle aria-label="Switch between light and dark">
+          Theme
+        </button>
       </div>
-    </nav>
-    <main>
-      <slot />
-    </main>
-    <footer>
-      <div>
-        <p>Built with the Astro Production Starter.</p>
+    </header>
+
+    <div class="wrap">
+      <main id="main" tabindex="-1">
+        <slot />
+      </main>
+    </div>
+
+    <footer class="site-foot">
+      <div class="wrap">
+        <p>
+          {SITE.name} · <a href="/rss.xml">RSS</a> · <a href="/llms.txt">llms.txt</a>
+        </p>
       </div>
     </footer>
+
+    <script is:inline>
+      document.querySelector('[data-theme-toggle]')?.addEventListener('click', () => {
+        const next = document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+        document.documentElement.dataset.theme = next;
+        try {
+          localStorage.setItem('theme', next);
+        } catch (e) {}
+      });
+    </script>
   </body>
 </html>
