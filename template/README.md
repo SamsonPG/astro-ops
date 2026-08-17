@@ -17,7 +17,7 @@ Lighthouse (performance / accessibility / best-practices / SEO).
 
 ---
 
-## The five gates
+## The six gates
 
 Each answers a failure where the code is fine, the build passes, the page renders — and
 only the edge, the crawler, or the calendar is wrong. Those are the bugs that survive
@@ -32,7 +32,7 @@ review and surface months later.
 | `check:links` | A link to a page you no longer ship, and trailing-slash drift |
 | `check:budgets` | A slow regression nobody would have blocked, because the score was only ever a dashboard |
 
-`npm run check:ci` runs the first five. `npm run check:budgets` runs the fifth — it needs a
+`npm run check:ci` runs the first five. `npm run check:budgets` runs the sixth — it needs a
 server, and `scripts/with-server.mjs` starts and stops one for you.
 
 ## Prove they work
@@ -50,7 +50,7 @@ not asserted:
 
 ## What you get
 
-A working site, not a demo of five checks:
+A working site, not a demo of six checks:
 
 - **Blog** on Astro content collections with a strict schema — a missing description or a
   malformed date fails the build, naming the file and the field.
@@ -127,7 +127,7 @@ gagged.
 
 ## The engine
 
-All five gates come from [`@acsaven/astro-ops`](https://github.com/SamsonPG/astro-ops) —
+All six gates come from [`@acsaven/astro-ops`](https://github.com/SamsonPG/astro-ops) —
 MIT, zero runtime dependencies, installed as a git dependency so there is no registry
 account involved. It is free and stays free.
 
@@ -141,4 +141,4 @@ Configured for Cloudflare Workers (`wrangler.toml`). The worker serves `dist/` a
 page HTML at the edge keyed on `BUILD_ID`, which is what makes a one-year TTL safe.
 
 Any static host works — drop `worker.js` and `wrangler.toml`, keep everything else. You
-lose the edge page cache; the other four gates are host-agnostic.
+lose the edge page cache; the other five gates are host-agnostic.
