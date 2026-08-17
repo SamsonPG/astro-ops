@@ -1,0 +1,36 @@
+{
+  "name": "@acsaven/astro-ops",
+  "version": "0.1.0",
+  "description": "Production gates for Astro sites — content-hashed build ids, freshness watchdogs, performance budgets, discovery wiring, and a no-third-party-asset tripwire.",
+  "type": "module",
+  "license": "UNLICENSED",
+  "private": true,
+  "engines": {
+    "node": ">=20"
+  },
+  "bin": {
+    "astro-ops": "./bin/astro-ops.mjs"
+  },
+  "exports": {
+    ".": "./src/index.mjs",
+    "./build-id": "./src/build-id.mjs",
+    "./config": "./src/config.mjs"
+  },
+  "files": [
+    "bin",
+    "src",
+    "README.md"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "selfcheck": "node bin/astro-ops.mjs --help"
+  },
+  "keywords": [
+    "astro",
+    "build-id",
+    "edge-cache",
+    "ci",
+    "lighthouse",
+    "seo"
+  ]
+}
