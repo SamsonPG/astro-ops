@@ -1,14 +1,16 @@
-# Astro Production Starter
+# @acsaven/astro-ops
 
-Astro themes sell **design**. This sells the part that comes after: the operational work
-that keeps a site *correct* six months later, when nobody is looking at it.
+Production gates for Astro sites: the operational work that keeps a site *correct* six
+months later, when nobody is looking at it.
 
-It is extracted from four sites that have been running these gates in production — not
-written as a demo. Every check here exists because something went wrong once, and the
-comment above it says what.
+Extracted from four sites that run these gates in production — not written as a demo. It
+exists because the same ~20 build scripts had been copy-pasted into every repo and were
+drifting. Every check here answers something that went wrong once, and the comment above
+it says what.
 
-> **Status: in development.** No price, no release date. The `ops/` toolkit is being
-> extracted module by module; `build-id` is done and tested.
+> **Status: early.** Modules are extracted one at a time, and each is adopted into the
+> live sites the same day — so nothing here is theoretical. `build-id` is done, tested,
+> and running on three production sites.
 
 ---
 
@@ -46,9 +48,19 @@ the origin is fine and only the edge, the crawler, or the calendar is wrong.
 
 ## Install
 
-```bash
-npm i -D @acsaven/astro-ops
+Installed as a git dependency — there is no registry publish:
+
+```jsonc
+// package.json
+{
+  "devDependencies": {
+    "@acsaven/astro-ops": "github:SamsonPG/astro-ops"
+  }
+}
 ```
+
+Pin a tag or commit (`github:SamsonPG/astro-ops#v0.1.0`) if you want a build that cannot
+move under you. `npm ci` resolves git dependencies natively, so CI needs no extra setup.
 
 Zero runtime dependencies. It installs into your build pipeline, so every dependency it
 carried would become one you inherit — it carries none.
@@ -166,7 +178,6 @@ Because these run unattended and the output is all a human sees when one fails a
 ## Development
 
 ```bash
-cd ops
 npm test        # node:test, no test-framework dependency
 ```
 

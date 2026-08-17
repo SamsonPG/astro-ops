@@ -3,8 +3,7 @@
   "version": "0.1.0",
   "description": "Production gates for Astro sites — content-hashed build ids, freshness watchdogs, performance budgets, discovery wiring, and a no-third-party-asset tripwire.",
   "type": "module",
-  "license": "UNLICENSED",
-  "private": true,
+  "license": "MIT",
   "engines": {
     "node": ">=20"
   },
@@ -32,5 +31,10 @@
     "ci",
     "lighthouse",
     "seo"
-  ]
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/SamsonPG/astro-ops.git"
+  },
+  "private": true
 }
