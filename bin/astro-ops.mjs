@@ -23,6 +23,7 @@ import { emitBuildId, checkBuildId } from '../src/build-id.mjs';
 import { scanExternalAssets } from '../src/external-assets.mjs';
 import { scanClaims, readFileConstants, evaluateFreshness, fetchDrift } from '../src/freshness.mjs';
 import { auditDiscovery } from '../src/discovery.mjs';
+import { checkLinks } from '../src/links.mjs';
 import { runLighthouse, evaluateBudgets } from '../src/budgets.mjs';
 
 const USAGE = `astro-ops — production gates for Astro sites
@@ -33,6 +34,7 @@ Usage:
   astro-ops check:external       Fail on third-party scripts, styles, fonts or embeds
   astro-ops check:freshness      Fail on claims overdue for re-verification, or drifted
   astro-ops check:discovery      Fail on broken titles, canonicals, sitemap/noindex conflicts
+  astro-ops check:links          Fail on broken internal links and trailing-slash drift
   astro-ops check:budgets        Fail when Lighthouse drops below your thresholds
   astro-ops check                Run every configured gate (CI entry point)
 
@@ -262,6 +264,35 @@ function cmdCheckDiscovery(config, root, quiet) {
   return 1;
 }
 
+// --- links ------------------------------------------------------------------------------
+
+function cmdCheckLinks(config, root, quiet) {
+  const r = checkLinks({ root, ...config.links });
+  if (r.missingDist) {
+    bad(`${config.links.dist}/ does not exist — build first; a link is only broken relative to what you shipped.`);
+    return 1;
+  }
+  if (r.broken.length === 0 && r.slashes.length === 0) {
+    if (!quiet) ok(`links OK (${r.linkCount} internal hrefs across ${r.fileCount} pages)`);
+    return 0;
+  }
+
+  if (r.broken.length) {
+    console.error(`  ✗ ${r.broken.length} broken internal link(s):`);
+    report(r.broken, (b) => `  ${b.href}\n      first seen in ${b.where} — no page is built at that path`);
+  }
+  if (r.slashes.length) {
+    console.error(`  ✗ ${r.slashes.length} internal link(s) missing a trailing slash:`);
+    report(r.slashes, (s) => `  ${s.href}  (in ${s.where})`);
+    console.error(
+      `\n    "/about" and "/about/" are two URLs to a crawler. If your host redirects one to\n` +
+        `    the other, each of these costs a redirect hop. Set links.requireTrailingSlash:false\n` +
+        `    if your site is configured the other way round.`,
+    );
+  }
+  return 1;
+}
+
 // --- budgets ----------------------------------------------------------------------------
 
 function cmdCheckBudgets(config, quiet) {
@@ -304,6 +335,7 @@ async function cmdCheckAll(config, root, quiet) {
     ['external', () => cmdCheckExternal(config, root, quiet)],
     ['freshness', () => cmdCheckFreshness(config, root, quiet)],
     ['discovery', () => cmdCheckDiscovery(config, root, quiet)],
+    ['links', () => cmdCheckLinks(config, root, quiet)],
     ['budgets', () => cmdCheckBudgets(config, quiet)],
   ];
 
@@ -345,6 +377,7 @@ async function main() {
     'check:external': () => cmdCheckExternal(config, flags.root, flags.quiet),
     'check:freshness': () => cmdCheckFreshness(config, flags.root, flags.quiet),
     'check:discovery': () => cmdCheckDiscovery(config, flags.root, flags.quiet),
+    'check:links': () => cmdCheckLinks(config, flags.root, flags.quiet),
     'check:budgets': () => cmdCheckBudgets(config, flags.quiet),
     check: () => cmdCheckAll(config, flags.root, flags.quiet),
   };

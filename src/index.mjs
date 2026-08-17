@@ -7,6 +7,7 @@
 export { computeBuildId, emitBuildId, checkBuildId } from './build-id.mjs';
 export { scanExternalAssets, isRemoteUrl } from './external-assets.mjs';
 export { scanClaims, readFileConstants, dueDate, evaluateFreshness, fetchDrift } from './freshness.mjs';
+export { checkLinks, isInternalPath, targetFor, missingTrailingSlash } from './links.mjs';
 export { auditDiscovery, auditPage, routeOf, metaContent } from './discovery.mjs';
 export { runLighthouse, evaluateBudgets, scoresFromReport } from './budgets.mjs';
 export {
@@ -18,5 +19,6 @@ export {
   EXTERNAL_DEFAULTS,
   FRESHNESS_DEFAULTS,
   DISCOVERY_DEFAULTS,
+  LINKS_DEFAULTS,
   BUDGETS_DEFAULTS,
 } from './config.mjs';

@@ -99,6 +99,19 @@ export const DISCOVERY_DEFAULTS = {
   },
 };
 
+/**
+ * Defaults for internal link integrity.
+ *
+ * requireTrailingSlash must match your host and your astro.config `trailingSlash` setting.
+ * Flip both together or the gate fights your site: with one set to 'never', every single
+ * internal link is reported as wrong.
+ */
+export const LINKS_DEFAULTS = {
+  dist: 'dist',
+  requireTrailingSlash: true,
+  ignore: [],
+};
+
 /** Defaults for performance budgets. A null `url` skips the gate. */
 export const BUDGETS_DEFAULTS = {
   url: null,
@@ -118,6 +131,7 @@ export const DEFAULTS = {
   external: EXTERNAL_DEFAULTS,
   freshness: FRESHNESS_DEFAULTS,
   discovery: DISCOVERY_DEFAULTS,
+  links: LINKS_DEFAULTS,
   budgets: BUDGETS_DEFAULTS,
 };
 
@@ -206,6 +220,14 @@ export function validateConfig(config) {
     if (f.driftApi !== null && typeof f.driftApi !== 'string') {
       problems.push('freshness.driftApi must be a URL string or null');
     }
+  }
+
+  const lk = config.links;
+  if (lk) {
+    if (typeof lk.requireTrailingSlash !== 'boolean') {
+      problems.push('links.requireTrailingSlash must be true or false');
+    }
+    if (!Array.isArray(lk.ignore)) problems.push('links.ignore must be an array');
   }
 
   const b2 = config.budgets;
