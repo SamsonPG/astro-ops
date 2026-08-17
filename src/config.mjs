@@ -70,6 +70,12 @@ export const EXTERNAL_DEFAULTS = {
 export const FRESHNESS_DEFAULTS = {
   claims: [],
   scan: null, // { file, keys?: { id, label, lastVerified, recheckBy, sourceUrl } }
+  /*
+    The second shape: each data file IS one claim and carries its own dates as module-level
+    exports. [{ file, id, label }] — dates read via fileKeys below.
+  */
+  files: [],
+  fileKeys: { lastVerified: 'VERIFIED_ON', recheckBy: 'RECHECK_BY', sourceUrl: 'SOURCE_URL' },
   recheckMonths: 12,
   warnWindowDays: 45,
   driftApi: null,

@@ -100,6 +100,43 @@ export function scanClaims(text, keys = {}) {
 }
 
 /**
+ * Reads a claim from a file that carries its dates as MODULE-LEVEL EXPORTS.
+ *
+ * The second shape found in the wild. Instead of many claims inside one data file, each
+ * data file IS one claim and states its own provenance:
+ *
+ *     export const VERIFIED_ON = '2026-07-24';
+ *     export const RECHECK_BY  = '2027-03-15';
+ *     export const SOURCE_URL  = 'https://www.incometax.gov.in/…';
+ *
+ * Read by regex rather than `import`, for the same reason as `scanClaims`: a TypeScript
+ * data file cannot be imported without a build step, and importing arbitrary project files
+ * to check them means executing them.
+ *
+ * A file MISSING its date exports returns `{ found: false }` rather than an empty claim.
+ * That distinction matters — a data file nobody dated is unguarded, and silently treating
+ * it as "no claim here" is how a rate table goes stale for a year.
+ *
+ * @param {string} text - File contents.
+ * @param {object} [keys] - Export names to read.
+ * @returns {{found:boolean, lastVerified?:string, recheckBy?:string, sourceUrl?:string}}
+ */
+export function readFileConstants(text, keys = {}) {
+  const k = {
+    lastVerified: 'VERIFIED_ON',
+    recheckBy: 'RECHECK_BY',
+    sourceUrl: 'SOURCE_URL',
+    ...keys,
+  };
+  const out = {};
+  for (const [field, name] of Object.entries(k)) {
+    const m = text.match(new RegExp(`export\\s+const\\s+${name}\\s*=\\s*['"]([^'"]+)['"]`));
+    if (m) out[field] = m[1];
+  }
+  return { found: Boolean(out.lastVerified || out.recheckBy), ...out };
+}
+
+/**
  * Computes the date a claim must be re-verified by.
  *
  * @param {{lastVerified?:string, recheckBy?:string}} claim

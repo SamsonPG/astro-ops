@@ -6,7 +6,7 @@
  */
 export { computeBuildId, emitBuildId, checkBuildId } from './build-id.mjs';
 export { scanExternalAssets, isRemoteUrl } from './external-assets.mjs';
-export { scanClaims, dueDate, evaluateFreshness, fetchDrift } from './freshness.mjs';
+export { scanClaims, readFileConstants, dueDate, evaluateFreshness, fetchDrift } from './freshness.mjs';
 export { auditDiscovery, auditPage, routeOf, metaContent } from './discovery.mjs';
 export { runLighthouse, evaluateBudgets, scoresFromReport } from './budgets.mjs';
 export {

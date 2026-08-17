@@ -21,7 +21,7 @@ import { join } from 'node:path';
 import { loadConfig } from '../src/config.mjs';
 import { emitBuildId, checkBuildId } from '../src/build-id.mjs';
 import { scanExternalAssets } from '../src/external-assets.mjs';
-import { scanClaims, evaluateFreshness, fetchDrift } from '../src/freshness.mjs';
+import { scanClaims, readFileConstants, evaluateFreshness, fetchDrift } from '../src/freshness.mjs';
 import { auditDiscovery } from '../src/discovery.mjs';
 import { runLighthouse, evaluateBudgets } from '../src/budgets.mjs';
 
@@ -154,6 +154,27 @@ async function cmdCheckFreshness(config, root, quiet) {
       return 1;
     }
     claims = claims.concat(scanned);
+  }
+
+  // Second shape: each listed file IS one claim, carrying its dates as module-level exports.
+  for (const entry of f.files ?? []) {
+    const file = join(root, entry.file);
+    if (!existsSync(file)) {
+      bad(`freshness.files entry not found: ${entry.file}`);
+      return 1;
+    }
+    const read = readFileConstants(readFileSync(file, 'utf8'), f.fileKeys);
+    if (!read.found) {
+      // An undated data file is UNGUARDED. Skipping it quietly is how a rate table goes
+      // stale for a year while the gate reports success every single run.
+      bad(
+        `${entry.file} has no ${f.fileKeys?.lastVerified ?? 'VERIFIED_ON'}/` +
+          `${f.fileKeys?.recheckBy ?? 'RECHECK_BY'} export — it is listed as time-sensitive\n` +
+          `    but nothing can tell when it went stale. Add the dates, or drop it from freshness.files.`,
+      );
+      return 1;
+    }
+    claims.push({ id: entry.id ?? entry.file, label: entry.label, ...read });
   }
 
   if (claims.length === 0) {

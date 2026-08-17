@@ -10,6 +10,7 @@ import assert from 'node:assert/strict';
 
 import {
   scanClaims,
+  readFileConstants,
   dueDate,
   evaluateFreshness,
   fetchDrift,
@@ -150,4 +151,24 @@ test('drift: no configured feed is "disabled", not a failure', async () => {
   const res = await fetchDrift(null, [], 100);
   assert.equal(res.status, 'disabled');
   assert.equal(res.drifted.length, 0);
+});
+
+test('readFileConstants reads module-level date exports', () => {
+  // The second shape found in the wild: each data file IS one claim.
+  const src = `
+    export const VERIFIED_ON = '2026-07-24';
+    export const RECHECK_BY = '2027-03-15';
+    export const SOURCE_URL = 'https://www.incometax.gov.in/iec/foportal/';
+    export const SLABS = [];`;
+  const r = readFileConstants(src);
+  assert.equal(r.found, true);
+  assert.equal(r.lastVerified, '2026-07-24');
+  assert.equal(r.recheckBy, '2027-03-15');
+  assert.equal(r.sourceUrl, 'https://www.incometax.gov.in/iec/foportal/');
+});
+
+test('readFileConstants reports an UNDATED file rather than an empty claim', () => {
+  // A data file nobody dated is unguarded. Returning a blank claim would let it pass
+  // every run forever, which is how a rate table goes stale for a year.
+  assert.equal(readFileConstants('export const RATES = [];').found, false);
 });
