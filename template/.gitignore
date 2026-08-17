@@ -1,0 +1,12 @@
+node_modules/
+dist/
+.astro/
+.wrangler/
+.env
+.env.*
+*.log
+.DS_Store
+
+# build-id.js is NOT ignored on purpose.
+# Deploy pipelines ship the COMMITTED id; ignoring it recreates the exact stale-cache
+# bug astro-ops exists to prevent.

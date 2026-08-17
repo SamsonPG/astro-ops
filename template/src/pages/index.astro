@@ -1,0 +1,46 @@
+---
+import Base from '../layouts/Base.astro';
+import { CLAIMS } from '../data/claims';
+
+const fee = CLAIMS.find((c) => c.slug === 'example-fee');
+---
+
+<Base
+  title="Astro Production Starter"
+  description="An Astro starter wired for what happens after the site looks right: build ids, freshness, budgets, discovery and a third-party tripwire."
+>
+  <h1>It builds. Now keep it correct.</h1>
+
+  <p>
+    This is a working Astro site with five production gates already wired into its build and
+    CI. Run <code>npm run check</code> and every one of them reports.
+  </p>
+
+  <h2>The gates</h2>
+  <ul>
+    <li><strong>Content-hashed build id</strong> — <code>postbuild</code> writes <code>build-id.js</code>; <code>worker.js</code> keys the edge cache on it.</li>
+    <li><strong>Freshness</strong> — the claim below carries a verified date and a source, and CI fails when it goes stale.</li>
+    <li><strong>Discovery</strong> — this page's canonical, title, description and sitemap entry are all checked against each other.</li>
+    <li><strong>External assets</strong> — no third-party script, font or embed can appear without being named in config.</li>
+    <li><strong>Budgets</strong> — Lighthouse thresholds, accessibility blocking.</li>
+  </ul>
+
+  <h2>A claim the watchdog is guarding</h2>
+  <p>
+    Example fee: <strong>{fee?.amount}</strong> — verified {fee?.lastVerified}, source
+    <a href={fee?.officialSourceUrl} rel="noopener noreferrer">{fee?.officialSourceUrl}</a>.
+  </p>
+  <p>
+    Change <code>lastVerified</code> in <code>src/data/claims.ts</code> to a date over a year old
+    and run <code>npm run check</code>. The build fails, and tells you which claim and why.
+  </p>
+
+  <h2>Try breaking it</h2>
+  <p>Each of these turns a green build red, which is the whole point:</p>
+  <ul>
+    <li>Add <code>&lt;script src="https://cdn.jsdelivr.net/npm/x"&gt;&lt;/script&gt;</code> to a page.</li>
+    <li>Edit any file, then run <code>astro-ops check:build-id</code> without rebuilding.</li>
+    <li>Point a canonical at a page that is not itself.</li>
+    <li>Add <code>noindex</code> to a page that is in the sitemap.</li>
+  </ul>
+</Base>

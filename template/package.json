@@ -1,0 +1,25 @@
+{
+  "name": "astro-production-starter",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "An Astro starter wired for what happens after the site looks right.",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build",
+    "postbuild": "astro-ops build-id",
+    "preview": "astro preview",
+    "check": "astro check && astro-ops check",
+    "check:ci": "astro-ops check",
+    "serve:dist": "node scripts/serve-dist.mjs",
+    "check:budgets": "node scripts/with-server.mjs astro-ops check:budgets"
+  },
+  "devDependencies": {
+    "@acsaven/astro-ops": "github:SamsonPG/astro-ops",
+    "astro": "^7.2.2",
+    "lighthouse": "^13.4.1"
+  }
+}

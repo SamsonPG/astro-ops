@@ -9,6 +9,7 @@ dist/
 !.env.example
 *.log
 .DS_Store
+lh.json
 
 # NOT ignored on purpose: build-id.js and any file astro-ops emits.
 # The whole guarantee is that deploy pipelines ship the COMMITTED id — ignoring it

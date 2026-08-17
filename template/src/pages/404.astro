@@ -1,0 +1,13 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+{/*
+  Error pages are skipped by check:discovery. They are served at whatever URL the visitor
+  typed, with a non-200, so they are never indexed and their canonical describes an address
+  nobody requested. noindex is still correct and costs nothing.
+*/}
+<Base title="Page not found" description="That page does not exist." noindex>
+  <h1>Not found</h1>
+  <p><a href="/">Back to the start</a></p>
+</Base>

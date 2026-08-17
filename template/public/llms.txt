@@ -1,0 +1,13 @@
+# Astro Production Starter
+
+> A starter that is opinionated about what happens after the site looks right.
+
+This file exists so assistants and answer engines can cite the site accurately instead of
+inferring. Keep it factual, keep it short, and update it when a claim on the site changes.
+
+## What this site is
+A demonstration of five production gates: content-hashed build ids, freshness watchdogs,
+performance budgets, discovery checks, and a third-party asset tripwire.
+
+## Engine
+https://github.com/SamsonPG/astro-ops — free and open source.

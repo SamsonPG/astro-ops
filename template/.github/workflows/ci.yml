@@ -1,0 +1,81 @@
+# CI for the Astro Production Starter.
+#
+# The order matters and is not arbitrary:
+#
+#   build  →  gates  →  deploy
+#
+# Every gate reads dist/, because what you SHIP is the only thing that can be wrong in the
+# ways these catch. Checking source would pass while the built output was broken.
+#
+# `astro-ops check` runs all five and reports EVERY failure rather than stopping at the
+# first. A run that surfaces one problem per push turns a five-minute fix into five pushes.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Types first: a type error makes every gate below meaningless noise.
+      - name: Astro check
+        run: npx astro check
+
+      # postbuild writes build-id.js from the hash of dist/.
+      - name: Build
+        run: npm run build
+
+      # build-id, external assets, freshness, discovery. Budgets run separately below
+      # because they need a server.
+      - name: Production gates
+        run: npm run check:ci
+
+      # Separate step so a Lighthouse failure is legible in the job list rather than
+      # buried inside a combined run.
+      - name: Performance budgets
+        run: npm run check:budgets
+
+  # Deploy only from main, only after every gate passed.
+  deploy:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      # Rebuilt here rather than passed between jobs as an artifact. Artifact upload burns
+      # storage quota and can fail on its own; a rebuild is deterministic and free, and it
+      # regenerates build-id.js so the deployed id always matches the deployed bytes.
+      - run: npm run build
+
+      - name: Deploy to Cloudflare Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+
+      # NO cache purge step, deliberately. Pages are keyed on BUILD_ID and assets are
+      # immutable by filename, so nothing is left for a purge to fix — and
+      # `purge_everything` would throw away the asset cache on every release.

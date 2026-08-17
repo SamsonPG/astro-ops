@@ -8,9 +8,9 @@ exists because the same ~20 build scripts had been copy-pasted into every repo a
 drifting. Every check here answers something that went wrong once, and the comment above
 it says what.
 
-> **Status: early.** Modules are extracted one at a time, and each is adopted into the
-> live sites the same day — so nothing here is theoretical. `build-id` is done, tested,
-> and running on three production sites.
+> **Status: v1.** All five gates are built, tested, and running in production on three
+> live sites. [`template/`](./template) is a working Astro site with every gate wired into
+> its build and CI — green out of the box, and each documented failure verified to fail.
 
 ---
 
@@ -228,3 +228,14 @@ compute the same id for the same commit" depends on — stable sort order across
 path-sensitivity so a rename busts the cache, `\0` delimiters so swapping two files'
 contents cannot collide, and a `fileCount` of zero surfacing as an error instead of a
 constant id forever.
+
+---
+
+## The starter
+
+[`template/`](./template) is a complete Astro site with all five gates wired into its build
+and CI. Clone it, run `npm install && npm run check`, and every gate reports.
+
+It scores 100 / 100 / 96 / 100 on Lighthouse, carries zero npm vulnerabilities, and its
+README lists five ways to deliberately break it — each verified to produce the failure it
+claims, not asserted.

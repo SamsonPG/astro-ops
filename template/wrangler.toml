@@ -1,0 +1,11 @@
+name = "astro-production-starter"
+main = "worker.js"
+compatibility_date = "2026-01-01"
+
+[assets]
+directory = "./dist"
+binding = "ASSETS"
+# Every page URL ends in "/" so the layout's canonical, the sitemap and check:discovery
+# all agree on one form. Two URLs for one page is a crawler problem, not a cosmetic one.
+html_handling = "force-trailing-slash"
+not_found_handling = "404-page"

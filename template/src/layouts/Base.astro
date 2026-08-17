@@ -1,0 +1,117 @@
+---
+/**
+ * Base layout.
+ *
+ * Everything `astro-ops check:discovery` looks for is emitted HERE rather than left to
+ * each page, because a per-page <head> is how a site ends up with four pages missing a
+ * canonical and nobody noticing for a year. A page supplies facts; the layout decides how
+ * they are expressed.
+ *
+ * The gate then verifies the OUTPUT, not this file — so if someone bypasses the layout,
+ * the build still fails.
+ */
+interface Props {
+  /** Page title. Kept under the length search results display — the gate enforces it. */
+  title: string;
+  /** Meta description. Also enforced. */
+  description: string;
+  /** Set on pages that must not be indexed. The gate fails if one is in the sitemap. */
+  noindex?: boolean;
+}
+
+const { title, description, noindex = false } = Astro.props;
+
+/**
+ * Canonical is derived from the page's own URL, never hand-written.
+ *
+ * A hand-written canonical is the single most common way a site quietly hands its ranking
+ * to a URL that does not exist — someone copies a page, forgets the tag, and the copy now
+ * points at the original. Deriving it means the gate's "canonical must match the route"
+ * check can only fail if the site config is wrong, which is a fixable, obvious thing.
+ */
+const canonical = new URL(Astro.url.pathname, Astro.site ?? Astro.url.origin).href;
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>{title}</title>
+    <meta name="description" content={description} />
+    <link rel="canonical" href={canonical} />
+    {noindex && <meta name="robots" content="noindex, follow" />}
+
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content={title} />
+    <meta property="og:description" content={description} />
+    <meta property="og:url" content={canonical} />
+
+    {/*
+      Fonts are the system stack, deliberately. A webfont from a third-party host is the
+      most common thing `astro-ops check:external` catches, and the most common reason a
+      "we load nothing third-party" claim in a privacy policy quietly becomes false.
+      Self-host if you need a specific face; do not link one.
+    */}
+    <style is:global>
+      :root {
+        --bg: #0f1216;
+        --panel: #171b22;
+        --ink: #e8edf2;
+        --muted: #9fb0bf;
+        --rim: #2a323d;
+        --brand: #4ade80;
+      }
+      @media (prefers-color-scheme: light) {
+        :root {
+          --bg: #f7f8fa;
+          --panel: #ffffff;
+          --ink: #16202b;
+          --muted: #566472;
+          --rim: #dde3ea;
+          --brand: #0f9d58;
+        }
+      }
+      * { box-sizing: border-box; }
+      body {
+        margin: 0;
+        background: var(--bg);
+        color: var(--ink);
+        font: 16px/1.65 system-ui, -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      }
+      main { max-width: 46rem; margin: 0 auto; padding: 3rem 1.25rem 4rem; }
+      h1 { font-size: clamp(1.9rem, 5vw, 2.6rem); line-height: 1.15; letter-spacing: -0.02em; }
+      h2 { margin-top: 2.5rem; }
+      a { color: var(--brand); }
+      code { background: var(--panel); border: 1px solid var(--rim); border-radius: 4px; padding: 0.1rem 0.35rem; }
+      nav { border-bottom: 1px solid var(--rim); }
+      nav div { max-width: 46rem; margin: 0 auto; padding: 1rem 1.25rem; display: flex; gap: 1.25rem; }
+      footer { border-top: 1px solid var(--rim); color: var(--muted); font-size: 0.9rem; }
+      footer div { max-width: 46rem; margin: 0 auto; padding: 2rem 1.25rem; }
+    </style>
+
+    <script type="application/ld+json" set:html={JSON.stringify({
+      '@context': 'https://schema.org',
+      '@type': 'WebPage',
+      name: title,
+      description,
+      url: canonical,
+    })} />
+  </head>
+  <body>
+    <nav>
+      <div>
+        <a href="/">Home</a>
+        <a href="/about/">About</a>
+      </div>
+    </nav>
+    <main>
+      <slot />
+    </main>
+    <footer>
+      <div>
+        <p>Built with the Astro Production Starter.</p>
+      </div>
+    </footer>
+  </body>
+</html>
