@@ -14,6 +14,9 @@ it says what.
 
 ---
 
+New to this codebase? Read **[CODE_GUIDE.md](CODE_GUIDE.md)** — it explains how the
+internals work and why, assuming no prior knowledge.
+
 ## Why this exists
 
 The four sites it came from had accumulated the same ~20 build scripts, copy-pasted into
