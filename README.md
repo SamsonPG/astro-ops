@@ -8,7 +8,7 @@ exists because the same ~20 build scripts had been copy-pasted into every repo a
 drifting. Every check here answers something that went wrong once, and the comment above
 it says what.
 
-> **Status: v1.** All five gates are built, tested, and running in production on three
+> **Status: v1.** All six gates are built, tested, and running in production on three
 > live sites. [`template/`](./template) is a working Astro site with every gate wired into
 > its build and CI — green out of the box, and each documented failure verified to fail.
 
@@ -237,7 +237,7 @@ constant id forever.
 
 ## The starter
 
-[`template/`](./template) is a complete Astro site with all five gates wired into its build
+[`template/`](./template) is a complete Astro site with all six gates wired into its build
 and CI. Clone it, run `npm install && npm run check`, and every gate reports.
 
 It scores 100 / 100 / 96 / 100 on Lighthouse, carries zero npm vulnerabilities, and its

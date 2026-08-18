@@ -7,7 +7,7 @@
 # Every gate reads dist/, because what you SHIP is the only thing that can be wrong in the
 # ways these catch. Checking source would pass while the built output was broken.
 #
-# `astro-ops check` runs all five and reports EVERY failure rather than stopping at the
+# `astro-ops check` runs all six and reports EVERY failure rather than stopping at the
 # first. A run that surfaces one problem per push turns a five-minute fix into five pushes.
 name: CI
 
