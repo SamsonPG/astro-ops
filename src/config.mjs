@@ -125,8 +125,23 @@ export const BUDGETS_DEFAULTS = {
   timeoutMs: 180000,
 };
 
+/**
+ * Defaults for the integrity module.
+ *
+ * 2 GB is a floor, not a comfort margin — it is roughly the point below which a Node build
+ * of a medium Astro site starts failing writes partway rather than up front. Raise it if
+ * your build writes more; set `minFreeBytes: 0` to disable on a platform that cannot report
+ * free space. `scanEmpty` is separate because the two questions are different: one asks
+ * whether it is safe to write now, the other whether something already got hurt.
+ */
+export const INTEGRITY_DEFAULTS = {
+  minFreeBytes: 2 * 1024 ** 3,
+  scanEmpty: true,
+};
+
 /** Every module's defaults, keyed by config section. */
 export const DEFAULTS = {
+  integrity: INTEGRITY_DEFAULTS,
   buildId: BUILD_ID_DEFAULTS,
   external: EXTERNAL_DEFAULTS,
   freshness: FRESHNESS_DEFAULTS,

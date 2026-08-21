@@ -41,6 +41,7 @@ the origin is fine and only the edge, the crawler, or the calendar is wrong.
 
 | Gate | Catches | Command |
 |---|---|---|
+| **Source integrity** | A machine out of disk silently emptying your source files mid-build, and a build about to do it | `check:integrity` |
 | **Content-hashed build id** | A deploy silently serving last week's HTML from a cache that was never invalidated | `check:build-id` |
 | **Freshness watchdog** | A fact you verified once that the authority changed without telling you | `check:freshness` |
 | **External-asset tripwire** | A third-party script, font or embed that appeared without anyone deciding to add it | `check:external` |
@@ -48,8 +49,16 @@ the origin is fine and only the edge, the crawler, or the calendar is wrong.
 | **Link integrity** | A link to a page you no longer ship, and trailing-slash drift that costs a redirect hop | `check:links` |
 | **Performance budgets** | A slow regression nobody would have blocked, because the score was only ever a dashboard | `check:budgets` |
 
-`astro-ops check` runs all six and reports **every** failure, not just the first — a CI run
+`astro-ops check` runs all seven and reports **every** failure, not just the first — a CI run
 that surfaces one problem per push turns a five-minute fix into five pushes.
+
+**Integrity runs first**, because every other gate reads files: if the disk emptied some of
+them, a link checker finds no links and a claims scanner finds no claims, and the run goes
+green on a repository that was just damaged. A write that runs out of space does not throw —
+it leaves the file empty, and nothing downstream notices, because an emptied module simply
+exports nothing and a deleted test reports zero failures. Set `integrity.minFreeBytes: 0` to
+skip the disk floor on a platform that cannot report free space; the empty-file scan still
+runs.
 
 ## Install
 

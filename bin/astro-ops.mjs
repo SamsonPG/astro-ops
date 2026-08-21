@@ -19,17 +19,24 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { loadConfig } from '../src/config.mjs';
-import { emitBuildId, checkBuildId } from '../src/build-id.mjs';
-import { scanExternalAssets } from '../src/external-assets.mjs';
-import { scanClaims, readFileConstants, evaluateFreshness, fetchDrift } from '../src/freshness.mjs';
-import { auditDiscovery } from '../src/discovery.mjs';
-import { checkLinks } from '../src/links.mjs';
-import { runLighthouse, evaluateBudgets } from '../src/budgets.mjs';
+/*
+  Integrity stays a STATIC import; every other gate is loaded on demand inside its command.
+
+  A CLI that imports all of its gates at module load cannot survive one of them being
+  damaged — emptying src/links.mjs made this file die with "does not provide an export named
+  checkLinks" before `check:integrity` could run, so the one command whose job is to REPORT
+  that damage was the one the damage disabled.
+
+  Loading each gate only when its command runs means a broken module now fails just that
+  gate, and integrity still reports what happened.
+*/
+import { checkIntegrity, describeIntegrity } from '../src/integrity.mjs';
 
 const USAGE = `astro-ops — production gates for Astro sites
 
 Usage:
   astro-ops build-id             Write the content-hashed build id file
+  astro-ops check:integrity      Fail on low disk, or on tracked files emptied by it
   astro-ops check:build-id       Fail if the committed build id is stale
   astro-ops check:external       Fail on third-party scripts, styles, fonts or embeds
   astro-ops check:freshness      Fail on claims overdue for re-verification, or drifted
@@ -71,7 +78,9 @@ function report(items, render, limit = 20) {
 
 // --- build-id ---------------------------------------------------------------------------
 
-function cmdBuildId(config, root, quiet) {
+async function cmdBuildId(config, root, quiet) {
+  const { emitBuildId } = await import('../src/build-id.mjs');
+
   const r = emitBuildId(config.buildId, root);
   if (r.fileCount === 0) {
     bad(
@@ -91,7 +100,24 @@ function cmdBuildId(config, root, quiet) {
   return 0;
 }
 
-function cmdCheckBuildId(config, root, quiet) {
+function cmdCheckIntegrity(config, root, quiet) {
+  const r = checkIntegrity({ root, ...config.integrity });
+  if (r.ok) {
+    if (!quiet) {
+      const free = r.free === null ? 'unknown' : `${(r.free / 1024 ** 3).toFixed(1)} GB free`;
+      ok(`integrity — ${free}, ${r.scanned} tracked files intact`);
+    }
+    return 0;
+  }
+  for (const line of describeIntegrity(r)) bad(line);
+  return 1;
+}
+
+// --- build-id ---------------------------------------------------------------------------
+
+async function cmdCheckBuildId(config, root, quiet) {
+  const { checkBuildId } = await import('../src/build-id.mjs');
+
   const r = checkBuildId(config.buildId, root);
   if (r.ok) {
     if (!quiet) ok(`build-id ${r.expected} matches deployed content`);
@@ -110,7 +136,9 @@ function cmdCheckBuildId(config, root, quiet) {
 
 // --- external ---------------------------------------------------------------------------
 
-function cmdCheckExternal(config, root, quiet) {
+async function cmdCheckExternal(config, root, quiet) {
+  const { scanExternalAssets } = await import('../src/external-assets.mjs');
+
   const r = scanExternalAssets({ root, ...config.external });
   if (r.missingDist) {
     bad(`${config.external.dist}/ does not exist — build first; this reads what you SHIP.`);
@@ -133,6 +161,8 @@ function cmdCheckExternal(config, root, quiet) {
 // --- freshness --------------------------------------------------------------------------
 
 async function cmdCheckFreshness(config, root, quiet) {
+  const { scanClaims, readFileConstants, evaluateFreshness, fetchDrift } = await import('../src/freshness.mjs');
+
   const f = config.freshness;
   let claims = [...f.claims];
 
@@ -247,7 +277,9 @@ async function cmdCheckFreshness(config, root, quiet) {
 
 // --- discovery --------------------------------------------------------------------------
 
-function cmdCheckDiscovery(config, root, quiet) {
+async function cmdCheckDiscovery(config, root, quiet) {
+  const { auditDiscovery } = await import('../src/discovery.mjs');
+
   const r = auditDiscovery({ root, ...config.discovery });
   if (r.missingDist) {
     bad(`${config.discovery.dist}/ does not exist — build first.`);
@@ -266,7 +298,9 @@ function cmdCheckDiscovery(config, root, quiet) {
 
 // --- links ------------------------------------------------------------------------------
 
-function cmdCheckLinks(config, root, quiet) {
+async function cmdCheckLinks(config, root, quiet) {
+  const { checkLinks } = await import('../src/links.mjs');
+
   const r = checkLinks({ root, ...config.links });
   if (r.missingDist) {
     bad(`${config.links.dist}/ does not exist — build first; a link is only broken relative to what you shipped.`);
@@ -295,7 +329,9 @@ function cmdCheckLinks(config, root, quiet) {
 
 // --- budgets ----------------------------------------------------------------------------
 
-function cmdCheckBudgets(config, quiet) {
+async function cmdCheckBudgets(config, quiet) {
+  const { runLighthouse, evaluateBudgets } = await import('../src/budgets.mjs');
+
   const b = config.budgets;
   if (!b.url) {
     if (!quiet) skip('budgets: no URL configured (set budgets.url to a running server)');
@@ -331,6 +367,15 @@ function cmdCheckBudgets(config, quiet) {
 
 async function cmdCheckAll(config, root, quiet) {
   const gates = [
+    /*
+      Integrity runs FIRST, deliberately.
+
+      Every gate below reads files. If the disk emptied some of them, those gates report
+      confident nonsense — a link checker finds no links, a claims scanner finds no claims,
+      and the run goes green on a repository that has just been damaged. Establishing that
+      the source is intact is a precondition for believing anything else in this list.
+    */
+    ['integrity', () => cmdCheckIntegrity(config, root, quiet)],
     ['build-id', () => cmdCheckBuildId(config, root, quiet)],
     ['external', () => cmdCheckExternal(config, root, quiet)],
     ['freshness', () => cmdCheckFreshness(config, root, quiet)],
@@ -361,7 +406,15 @@ async function main() {
   const { command, flags } = parseArgs(argv.slice(2));
   if (flags.help || !command) {
     console.log(USAGE);
-    exit(command ? 0 : 1);
+    /*
+      Asking for help is not a misuse. `--help` exits 0; running with no command at all
+      exits 1, because that is a caller who got the invocation wrong.
+
+      This tested `command` rather than `flags.help`, so `astro-ops --help` — which parses
+      to no command — exited 1. That made the package's own `npm run selfcheck` fail on
+      every machine it was ever run on, which is why nobody noticed it was failing.
+    */
+    exit(flags.help ? 0 : 1);
   }
 
   const { config, path, problems } = await loadConfig(flags.root);
@@ -373,6 +426,7 @@ async function main() {
 
   const commands = {
     'build-id': () => cmdBuildId(config, flags.root, flags.quiet),
+    'check:integrity': () => cmdCheckIntegrity(config, flags.root, flags.quiet),
     'check:build-id': () => cmdCheckBuildId(config, flags.root, flags.quiet),
     'check:external': () => cmdCheckExternal(config, flags.root, flags.quiet),
     'check:freshness': () => cmdCheckFreshness(config, flags.root, flags.quiet),
