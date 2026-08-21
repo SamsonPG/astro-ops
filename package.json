@@ -8,7 +8,7 @@
     "node": ">=20"
   },
   "bin": {
-    "astro-ops": "./bin/astro-ops.mjs"
+    "astro-ops": "bin/astro-ops.mjs"
   },
   "exports": {
     ".": "./src/index.mjs",
@@ -36,7 +36,6 @@
     "type": "git",
     "url": "git+https://github.com/acsavenhq/astro-ops.git"
   },
-  "private": true,
   "publishConfig": {
     "access": "public"
   },
