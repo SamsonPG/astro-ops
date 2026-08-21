@@ -34,7 +34,15 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/SamsonPG/astro-ops.git"
+    "url": "git+https://github.com/acsavenhq/astro-ops.git"
   },
-  "private": true
+  "private": true,
+  "publishConfig": {
+    "access": "public"
+  },
+  "author": "Samson PG",
+  "homepage": "https://acsaven.com/astro-production-starter/",
+  "bugs": {
+    "url": "https://github.com/acsavenhq/astro-ops/issues"
+  }
 }
