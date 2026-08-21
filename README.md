@@ -1,3 +1,14 @@
+<p align="center">
+  <img src="https://raw.githubusercontent.com/acsavenhq/astro-ops/main/docs/astro-ops-banner.png" alt="@acsaven/astro-ops — production gates for Astro sites" width="100%">
+</p>
+
+<p align="center">
+  <a href="https://www.npmjs.com/package/@acsaven/astro-ops"><img alt="npm version" src="https://img.shields.io/npm/v/@acsaven/astro-ops?color=34E89A&labelColor=0C1512"></a>
+  <a href="https://github.com/acsavenhq/astro-ops/blob/main/LICENSE"><img alt="license" src="https://img.shields.io/npm/l/@acsaven/astro-ops?color=34E89A&labelColor=0C1512"></a>
+  <img alt="node" src="https://img.shields.io/node/v/@acsaven/astro-ops?color=34E89A&labelColor=0C1512">
+  <img alt="zero dependencies" src="https://img.shields.io/badge/dependencies-0-34E89A?labelColor=0C1512">
+</p>
+
 # @acsaven/astro-ops
 
 Production gates for Astro sites: the operational work that keeps a site *correct* six
@@ -8,8 +19,8 @@ exists because the same ~20 build scripts had been copy-pasted into every repo a
 drifting. Every check here answers something that went wrong once, and the comment above
 it says what.
 
-> **Status: v1.** All six gates are built, tested, and running in production on three
-> live sites. [`template/`](./template) is a working Astro site with every gate wired into
+> **Status: stable.** All seven gates are built, tested, and running in production on three
+> live sites. [`template/`](https://raw.githubusercontent.com/acsavenhq/astro-ops/tree/main/template) is a working Astro site with every gate wired into
 > its build and CI — green out of the box, and each documented failure verified to fail.
 
 ---
@@ -246,7 +257,7 @@ constant id forever.
 
 ## The starter
 
-[`template/`](./template) is a complete Astro site with all six gates wired into its build
+[`template/`](https://raw.githubusercontent.com/acsavenhq/astro-ops/tree/main/template) is a complete Astro site with all seven gates wired into its build
 and CI. Clone it, run `npm install && npm run check`, and every gate reports.
 
 It scores 100 / 100 / 96 / 100 on Lighthouse, carries zero npm vulnerabilities, and its

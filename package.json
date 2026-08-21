@@ -1,6 +1,6 @@
 {
   "name": "@acsaven/astro-ops",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Production gates for Astro sites \u2014 content-hashed build ids, freshness watchdogs, performance budgets, discovery wiring, and a no-third-party-asset tripwire.",
   "type": "module",
   "license": "MIT",
